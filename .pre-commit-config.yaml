@@ -1,0 +1,32 @@
+repos:
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+    -   id: detect-secrets
+        name: Detect secrets
+        language: python
+        entry: detect-secrets-hook
+        args: ['--baseline', '.secrets.baseline']
+-   repo: https://github.com/golangci/golangci-lint
+    rev: v1.54.2
+    hooks:
+    -   id: golangci-lint
+-   repo: https://github.com/Bahjat/pre-commit-golang    
+    rev: v1.0.3 # pragma: allowlist secret
+    hooks:
+      - id: go-unit-tests
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    -   id: check-json
+    -   id: pretty-format-json
+    -   id: check-merge-conflict
+    -   id: check-yaml
+-   repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+    -   id: markdownlint-fix
+-   repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.9.0
+    hooks:
+    -   id: shellcheck
