@@ -44,7 +44,7 @@ type Header struct {
 
 	// Security
 	AuthenticationResults string   `mail:"Authentication-Results"`
-	DkimSignature         string   `mail:"DKIM-Signature"`
+	DKIMSignature         string   `mail:"DKIM-Signature"`
 	DomainKeySignature    string   `mail:"DomainKey-Signature"`
 	ReceivedSPF           string   `mail:"Received-SPF"`
 	ReceivedDKIM          string   `mail:"Received-DKIM"`
@@ -162,6 +162,7 @@ func (h *Header) Decode(ctx context.Context, header mail.Header) error {
 					continue
 				}
 
+				//nolint:exhaustive // TODO: add support for more types if necessary
 				switch out.Kind() {
 				case reflect.Slice:
 					out.Set(reflect.ValueOf(values))
@@ -182,6 +183,21 @@ func (h *Header) Decode(ctx context.Context, header mail.Header) error {
 					}
 
 					out.SetInt(v)
+				case reflect.Uint, reflect.Uint8, reflect.Uint16,
+					reflect.Uint32, reflect.Uint64:
+					v, err := strconv.ParseUint(values[0], 10, 64)
+					if err != nil {
+						return err
+					}
+
+					out.SetUint(v)
+				case reflect.Bool:
+					v, err := strconv.ParseBool(values[0])
+					if err != nil {
+						return err
+					}
+
+					out.SetBool(v)
 				default:
 					return errors.New("unsupported type")
 				}
@@ -197,11 +213,6 @@ type Media struct {
 	Params map[string]string
 }
 
-// from DS7PR06MB6869.namprd06.prod.outlook.com (2603:10b6:5:2d1::5) by PH8PR06MB9076.namprd06.prod.outlook.com with HTTPS; Wed, 4 Oct 2023 20:47:53 +0000
-// from BN8PR03CA0028.namprd03.prod.outlook.com (2603:10b6:408:94::41) by DS7PR06MB6869.namprd06.prod.outlook.com (2603:10b6:5:2d1::5) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6838.28; Wed, 4 Oct 2023 20:47:49 +0000
-//from BN8NAM04FT065.eop-NAM04.prod.protection.outlook.com (2603:10b6:408:94:cafe::c) by BN8PR03CA0028.outlook.office365.com (2603:10b6:408:94::41) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6863.25 via Frontend Transport; Wed, 4 Oct 2023 20:47:49 +0000
-//from outbound-ip137a.ess.barracuda.com (209.222.82.7) by BN8NAM04FT065.mail.protection.outlook.com (10.13.160.195) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6863.27 via Frontend Transport; Wed, 4 Oct 2023 20:47:48 +0000
-//from mta-174-81-118.atlassian.net.sparkpostmail.com (mta-174-81-118.atlassian.net.sparkpostmail.com [192.174.81.118]) by mx-inbound11-215.us-east-2a.ess.aws.cudaops.com (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO); Wed, 04 Oct 2023 20:47:48 +0000
 // https://www.pobox.help/hc/en-us/articles/1500000193602-The-elements-of-a-Received-header
 // https://www.rfc-editor.org/rfc/rfc1123
 // https://www.rfc-editor.org/rfc/rfc822
@@ -265,7 +276,7 @@ func (t *Transport) Decode(ctx context.Context, s string) (err error) {
 		dt := s[lastSemi+1:]
 		if dt != "" {
 			// Extract date from the end of the string
-			t.Date, _ = mail.ParseDate(dt)
+			t.Date, err = mail.ParseDate(dt)
 			if err != nil {
 				slog.WarnContext(
 					ctx,
@@ -282,7 +293,7 @@ func (t *Transport) Decode(ctx context.Context, s string) (err error) {
 
 	// Extract the ID
 	matches := idReg.FindStringSubmatch(s)
-	if matches != nil && len(matches) > 1 {
+	if len(matches) > 1 {
 		t.ID = matches[1]
 	}
 
@@ -344,7 +355,7 @@ func frombyReg(s string) bool {
 	mainRe := regexp.MustCompile(mainPattern)
 
 	matches := mainRe.FindStringSubmatch(s)
-	if matches != nil && len(matches) > 1 {
+	if len(matches) > 1 {
 		subPattern := `^\[[\d.]+\]$`
 		subRe := regexp.MustCompile(subPattern)
 
@@ -369,18 +380,19 @@ type With struct {
 
 var heloR = regexp.MustCompile(`(?i)\bhelo=([-A-Za-z0-9.^+_&:=?!@%*$\\\/]+)(?:[^-A-Za-z0-9.^+_&:=?!@%*$\\\/]|$)`)
 
+//nolint:lll // This regex is purposely long
 var ehloR = regexp.MustCompile(`(?i)\b(?:HELO|EHLO) ([-A-Za-z0-9.^+_&:=?!@%*$\\\/]+)(?:[^-A-Za-z0-9.^+_&:=?!@%*$\\\/]|$)`)
 
 func extractHELO(s string) string {
 	// Match HELO
 	matches1 := heloR.FindStringSubmatch(s)
-	if matches1 != nil && len(matches1) > 1 {
+	if len(matches1) > 1 {
 		return matches1[1] // Return the captured group from first pattern
 	}
 
 	// Match EHLO
 	matches2 := ehloR.FindStringSubmatch(s)
-	if matches2 != nil && len(matches2) > 1 {
+	if len(matches2) > 1 {
 		return matches2[1] // Return the captured group from second pattern
 	}
 

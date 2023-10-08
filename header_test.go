@@ -3,7 +3,6 @@ package mail
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -66,7 +65,7 @@ func Test_Header_Decode(t *testing.T) {
 	}
 
 	for _, recv := range e.Received {
-		fmt.Println(recv)
+		t.Logf("%#v", recv)
 	}
 }
 
