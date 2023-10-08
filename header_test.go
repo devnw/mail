@@ -163,7 +163,7 @@ func Test_Header_Transform_Ignore(t *testing.T) {
 }
 
 func Test_Transport_Bulk(t *testing.T) {
-	const data = "./testdata/received.txt"
+	const data = "./testdata/recv_headers.txt"
 	f, err := os.Open(data)
 	if err != nil {
 		t.Fatal(err)
@@ -173,7 +173,10 @@ func Test_Transport_Bulk(t *testing.T) {
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		line := strings.TrimPrefix(scanner.Text(), "Received: ")
+		line := scanner.Text()
+		if line == "" {
+			continue
+		}
 
 		trans := &Transport{}
 		err := trans.Decode(context.Background(), line)

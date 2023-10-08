@@ -1,0 +1,4 @@
+go.atomizer.io/stream v1.0.7 h1:ioEU8tmj6hif3Ha1d0DiFZ+IDeV1ZceIOqXybRrvi4I=
+go.atomizer.io/stream v1.0.7/go.mod h1:dZMYp2fUFjWlQke91O/kJb+FslZy8thQZzUl9vVMr84=
+go.structs.dev/gen v1.0.1 h1:tp81qXTWF61tgmyCVqBBdQcEMp9Ftlo5/ekkm+wVkYk=
+go.structs.dev/gen v1.0.1/go.mod h1:Y1KXGuqAQdeL0G485oZzpgVwVZ4x+/7/ViNdQJuINo4=
