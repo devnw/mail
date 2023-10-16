@@ -3,18 +3,35 @@ package mail
 import (
 	"context"
 	"io"
+	"mime/multipart"
 	"net/mail"
 )
 
 type Email struct {
+	io.Reader
 	*Header
-	body io.Reader
 
-	HTMLBody string
-	TextBody string
+	HTML string
+	Text string
 
-	// Attachments   []Attachment
-	// EmbeddedFiles []EmbeddedFile
+	Attachments []Attachment
+	Embeds      []Embeds
+}
+
+// Attachment with filename, content type and data (as a io.Reader)
+type Attachment struct {
+	*multipart.Part
+	FileName    string
+	ContentType string
+	Data        io.Reader
+}
+
+// Embedded with content id, content type and data (as a io.Reader)
+type Embedded struct {
+	*multipart.Part
+	CID         string
+	ContentType string
+	Data        io.Reader
 }
 
 func (e *Email) Decode(ctx context.Context, r io.Reader) (err error) {
@@ -29,7 +46,8 @@ func (e *Email) Decode(ctx context.Context, r io.Reader) (err error) {
 		return err
 	}
 
-	e.body = msg.Body
+	// Extract the body
+	e.Reader = msg.Body
 
 	return nil
 }

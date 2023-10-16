@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"errors"
+	"fmt"
 	"mime"
 	"net"
 	"net/mail"
@@ -299,6 +300,11 @@ func (t *Transport) Decode(ctx context.Context, s string) (err error) {
 
 	t.Helo = extractHELO(s)
 
+	by, err := extractBy(s)
+	if err == nil {
+		t.By, err = parseEntity(by)
+	}
+
 	return nil
 }
 
@@ -378,6 +384,8 @@ type With struct {
 	Metadata map[string]string
 }
 
+// https://metacpan.org/dist/Mail-SpamAssassin/source/lib/Mail/SpamAssassin/Message/Metadata/Received.pm#L389
+
 var heloR = regexp.MustCompile(`(?i)\bhelo=([-A-Za-z0-9.^+_&:=?!@%*$\\\/]+)(?:[^-A-Za-z0-9.^+_&:=?!@%*$\\\/]|$)`)
 
 //nolint:lll // This regex is purposely long
@@ -397,4 +405,25 @@ func extractHELO(s string) string {
 	}
 
 	return ""
+}
+
+// https://metacpan.org/dist/Mail-SpamAssassin/source/lib/Mail/SpamAssassin/Message/Metadata/Received.pm#L395
+
+// Create a regex pattern to match the condition.
+// The pattern is: " by " followed by a sequence of non-space characters (\S+),
+// and ending with a character not in the set [-A-Za-z0-9;.], or the end of the line.
+var byR = regexp.MustCompile(` by (\S+)(?:[^-A-Za-z0-9;.]|$)`)
+
+func extractBy(input string) (string, error) {
+	// FindSubmatch returns a slice holding the text of the leftmost match.
+	matches := byR.FindStringSubmatch(input)
+	if len(matches) > 1 {
+		// Return the first capturing group (index 1).
+		return matches[1], nil
+	}
+	return "", fmt.Errorf("no match found")
+}
+
+func parseEntity(entity string) (Entity, error) {
+	return Entity{}, nil
 }

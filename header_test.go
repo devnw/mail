@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 var t1 = `Subject: Re: Test Subject 2
@@ -64,6 +66,8 @@ func Test_Header_Decode(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	spew.Dump(e.Header)
+
 	for _, recv := range e.Received {
 		t.Logf("%#v", recv)
 	}
@@ -71,7 +75,7 @@ func Test_Header_Decode(t *testing.T) {
 
 // TODO: add tests for '(from ' because apparently this is allowed
 
-func Test_Header_Transform_Ignore(t *testing.T) {
+func Test_Header_Transform(t *testing.T) {
 	tests := []struct {
 		input string
 		err   error
@@ -183,5 +187,7 @@ func Test_Transport_Bulk(t *testing.T) {
 		if err != nil && err != ErrIgnoreTransport {
 			t.Fatalf("line: [%s] | error: %s", line, err)
 		}
+
+		spew.Dump(trans)
 	}
 }
