@@ -4,15 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
-	"mime"
-	"mime/multipart"
-	"strings"
 )
 
-const CONTENTTYPE = "Content-Type"
-
-type Extractor func(io.Reader, string) ([]Part, error)
+type Extractor func(io.Reader, string) ([]*Part, error)
 
 /*
 RFC 1426, SMTP Service Extension for 8bit-MIMEtransport. J. Klensin, N. Freed, M. Rose, E. Stefferud, D. Crocker. February 1993.
@@ -55,176 +49,122 @@ const (
 	MESSAGE     Type = "message"
 )
 
-func Extract(body io.Reader, ct, boundary string) error {
-	t, err := GetExtractor(ct)
-	if err != nil {
-		return err
-	}
+//func Extract(body io.Reader, ct, boundary string) error {
+//	t, err := GetExtractor(ct)
+//	if err != nil {
+//		return err
+//	}
+//
+//	parts, err := t.Extract(body, boundary)
+//	if err != nil {
+//		return err
+//	}
+//
+//	for _, part := range parts {
+//		// Extract Parts
+//		err = Extract(part.Body, part.MediaType, part.Params[BOUNDARY])
+//		if err != nil {
+//			return err
+//		}
+//
+//		// Extract Attachments
+//	}
+//
+//	return nil
+//}
+//
+//func GetExtractor(ct string) (SubType, error) {
+//	return SubType{}, nil
+//}
 
-	parts, err := t.Extract(body, boundary)
-	if err != nil {
-		return err
-	}
-
-	for _, part := range parts {
-		// Extract Parts
-		err = Extract(part.Body, part.ContentType, part.Boundary)
-
-	}
-}
-
-func GetExtractor(ct string) (SubType, error) {
-	extractors := map[string]SubType{
-		MIXED.String(): MIXED,
-		ALT.String():   ALT,
-		REL.String():   REL,
-		DIG.String():   DIG,
-		SIGN.String():  SIGN,
-		ENC.String():   ENC,
-		PLAIN.String(): PLAIN,
-		HTML.String():  HTML,
-	}
-
-	extractor, ok := extractors[ct]
-	if !ok {
-		return SubType{}, fmt.Errorf("unknown content type: %s", ct)
-	}
-
-	return extractor, nil
-}
-
-var (
-	ALT = SubType{MULTIPART, "alternative", multiAlt}
-	REL = SubType{MULTIPART, "related", multiRel}
-
-	// https://en.wikipedia.org/wiki/MIME#digest
-	DIG = SubType{MULTIPART, "digest", noop}
-
-	// https://www.oreilly.com/library/view/programming-internet-email/9780596802585/ch05s03s01.html
-	SIGN = SubType{MULTIPART, "signed", multiSign}
-
-	// https://www.iana.org/assignments/media-types/multipart/encrypted#:~:text=The%20multipart%2Fencrypted%20content%20type,value%20of%20the%20protocol%20parameter.
-	// https://www.oreilly.com/library/view/programming-internet-email/9780596802585/ch05s03s02.html
-	ENC = SubType{MULTIPART, "encrypted", multiEnc}
-
-	// https://www.iana.org/assignments/media-types/media-types.xhtml#text
-	PLAIN = SubType{TEXT, "plain", txtPlain}
-	HTML  = SubType{TEXT, "html", txtHTML}
-)
-
-var MIXED = SubType{
-	MULTIPART,
-	"mixed",
-	multiMixed,
-}
-
-type HType interface {
-	map[string][]string | map[string]string
-}
-
-type Headers map[string][]string
-type Parameters map[string]string
-
-type Part interface {
-	io.Reader
-	fmt.Stringer
-	Headers() Headers
-	MediaType() string
-	Params() Parameters
-}
+//var (
+//	ALT = SubType{MULTIPART, "alternative", multiAlt}
+//	REL = SubType{MULTIPART, "related", multiRel}
+//
+//	// https://en.wikipedia.org/wiki/MIME#digest
+//	DIG = SubType{MULTIPART, "digest", noop}
+//
+//	// https://www.oreilly.com/library/view/programming-internet-email/9780596802585/ch05s03s01.html
+//	SIGN = SubType{MULTIPART, "signed", multiSign}
+//
+//	// https://www.iana.org/assignments/media-types/multipart/encrypted#:~:text=The%20multipart%2Fencrypted%20content%20type,value%20of%20the%20protocol%20parameter.
+//	// https://www.oreilly.com/library/view/programming-internet-email/9780596802585/ch05s03s02.html
+//	ENC = SubType{MULTIPART, "encrypted", multiEnc}
+//
+//	// https://www.iana.org/assignments/media-types/media-types.xhtml#text
+//	PLAIN = SubType{TEXT, "plain", txtPlain}
+//	HTML  = SubType{TEXT, "html", txtHTML}
+//)
+//
+//var MIXED = SubType{
+//	MULTIPART,
+//	"mixed",
+//	multiMixed,
+//}
 
 var ErrMissingContentType = errors.New("Missing Content-Type Header")
 
-func NewPart[T HType](headers HType, body io.Reader) (Part, error) {
-	p := &part{
-		Headers: Headers{},
-		Params:  Parameters{},
-	}
+//func NewPart(params Parameters, body io.Reader) (*Part, error) {
+//	p := &Part{
+//		Params: params,
+//	}
+//
+//	ct, ok := p.Params[CONTENTTYPE]
+//	if !ok {
+//		return nil, ErrMissingContentType
+//	}
+//
+//	err := p.Parse(ctx, ct)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	p.Body = body
+//
+//	return p, nil
+//}
 
-	switch hs := headers.(type) {
-	case map[string]string:
-		for k, v := range hs {
-			p.Headers[k] = append(p.Headers[k], v)
-		}
-	case map[string][]string:
-		p.Headers = hs
-	}
-
-	ct, ok := p.Headers[CONTENTTYPE]
-	if !ok {
-		return nil, ErrMissingContentType
-	}
-
-	err := p.Parse(ct)
-	if err != nil {
-		return nil, err
-	}
-}
-
-type part struct {
-	Headers Headers
-
-	MediaType string
-	Params    Parameters
-
-	Body io.Reader
-
-	Children []*Part
-}
-
-// Parse takes the full Content-Type header/param value and extracts
-// the mime media type information and updates this Part with the parsed
-// information for analysis
-func (p *Part) Parse(contentType string) (err error) {
-	p.MediaType, p.Params, err = mime.ParseMediaType(contentType)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func multiAlt(body io.Reader, boundary string) error {
-	return nil
-}
-
-func multiRel(body io.Reader, boundary string) error {
-	return nil
-}
-
-func multiSign(body io.Reader, boundary string) error {
-	return nil
-}
-
-func multiEnc(body io.Reader, boundary string) error {
-	return nil
-}
-
-func txtPlain(body io.Reader, boundary string) error {
-	content, err := io.ReadAll(body)
-	if err != nil {
-		return err
-	}
-
-	e.Text += strings.TrimSuffix(string(content), "\n")
-	return nil
-}
-
-func txtHTML(body io.Reader, boundary string) error {
-	content, err := io.ReadAll(body)
-	if err != nil {
-		return err
-	}
-
-	e.Text += strings.TrimSuffix(string(content), "\n")
-	return nil
-}
-
-func noop(body io.Reader, boundary string) error {
-	slog.Warn("noop extractor executed", slog.String("boundary", boundary))
-	return nil
-}
-
-func attachments(e *Email, part *multipart.Part) error {
-	return nil
-}
+//func multiAlt(body io.Reader, boundary string) error {
+//	return nil
+//}
+//
+//func multiRel(body io.Reader, boundary string) error {
+//	return nil
+//}
+//
+//func multiSign(body io.Reader, boundary string) error {
+//	return nil
+//}
+//
+//func multiEnc(body io.Reader, boundary string) error {
+//	return nil
+//}
+//
+//func txtPlain(body io.Reader, boundary string) error {
+//	content, err := io.ReadAll(body)
+//	if err != nil {
+//		return err
+//	}
+//
+//	e.Text += strings.TrimSuffix(string(content), "\n")
+//	return nil
+//}
+//
+//func txtHTML(body io.Reader, boundary string) error {
+//	content, err := io.ReadAll(body)
+//	if err != nil {
+//		return err
+//	}
+//
+//	e.Text += strings.TrimSuffix(string(content), "\n")
+//	return nil
+//}
+//
+//func noop(body io.Reader, boundary string) error {
+//	slog.Warn("noop extractor executed", slog.String("boundary", boundary))
+//	return nil
+//}
+//
+//func attachments(e *Email, part *multipart.Part) error {
+//	return nil
+//}
