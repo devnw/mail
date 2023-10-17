@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/textproto"
+	"strings"
 )
 
 type Attributes map[string][]string
@@ -47,20 +49,45 @@ func (p *Part) Text() string {
 	return ""
 }
 
-// Passthrough the io.Reader interface
+// Passthrough the io.Reader interface.
 func (p *Part) Read(b []byte) (int, error) {
 	return p.body.Read(b)
 }
 
+func Parse(
+	ctx context.Context,
+	attrs Attributes,
+	body io.Reader,
+) (*Part, error) {
+	ct, params, err := mime.ParseMediaType(attrs.Get(TYPE.String()))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !strings.HasPrefix(ct, MULTIPART.String()) {
+		fmt.Println(ct)
+		fmt.Println(attrs.Get(TRANSFERENCODING.String()))
+		return nil, nil, fmt.Errorf("invalid media type: %s", ct)
+	}
+
+	Extract(ctx, params, body)
+}
+
 // Parse takes the full Content-Type header/param value and extracts
 // the mime media type information and updates this Part with the parsed
-// information for analysis
+// information for analysis.
 func (p *Part) Parse(ctx context.Context) (err error) {
-	parts, err := Extract(ctx, p.params, p.body)
+	parts, params, err := Extract(ctx, p.headers, p.body)
 	if err != nil {
 		return err
 	}
 
+	a := Attributes{}
+	for k, v := range params {
+		a[k] = []string{v}
+	}
+
+	p.params = a
 	p.children = parts
 
 	return nil

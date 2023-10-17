@@ -3,9 +3,7 @@ package ct
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
-	"mime"
 	"mime/multipart"
 )
 
@@ -26,40 +24,32 @@ type Multipart []*Part
 
 func (m Multipart) Type() string { return "multipart" }
 
-func Extract[T ~map[string][]string](
+func Extract(
 	ctx context.Context,
-	attrs T,
+	attrs Attributes,
 	body io.Reader,
-) (Multipart, error) {
-	headers := Attributes(attrs)
-
-	fmt.Println(headers)
-
+) (Multipart, map[string]string, error) {
 	m := Multipart{}
-	ct, params, err := mime.ParseMediaType(headers.Get(TYPE.String()))
-	if err != nil {
-		return nil, err
-	}
 
 	boundary := params[BOUNDARY]
 	if boundary == "" {
-		return nil, ErrMissingBoundary
+		return nil, nil, ErrMissingBoundary
 	}
 
 	mr := multipart.NewReader(body, boundary)
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 
 		default:
 			pt, err := mr.NextPart()
 			if err != nil {
 				if err == io.EOF {
-					return m, nil
+					return m, params, nil
 				}
 
-				return nil, err
+				return nil, nil, err
 			}
 
 			p := &Part{
@@ -70,14 +60,14 @@ func Extract[T ~map[string][]string](
 
 			err = p.Parse(ctx)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			m = append(m, p)
 		}
 	}
 
-	return m, nil
+	return m, params, nil
 }
 
 func ToAttributes[T map[string]string](p T) Attributes {

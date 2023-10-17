@@ -1,6 +1,6 @@
 package ct
 
-//type mixed struct{}
+// type mixed struct{}
 //
 //func (m mixed) Type() { return fmt.Sprintf("%s/%s", MULTIPART, "mixed") }
 //

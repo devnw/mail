@@ -20,10 +20,11 @@ func Test_Multipart_Extract(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, err := Extract(context.Background(), Attributes(msg.Header), msg.Body)
+	m, p, err := Extract(context.Background(), Attributes(msg.Header), msg.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	spew.Dump(p)
 	spew.Dump(m)
 }

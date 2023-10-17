@@ -28,6 +28,10 @@ RFC 7578, Returning Values from Forms: multipart/form-data
 // https://www.iana.org/assignments/media-types/media-types.xhtml
 type Type string
 
+func (t Type) String() string {
+	return string(t)
+}
+
 type SubType struct {
 	Type    Type
 	Name    string
@@ -49,7 +53,7 @@ const (
 	MESSAGE     Type = "message"
 )
 
-//func Extract(body io.Reader, ct, boundary string) error {
+// func Extract(body io.Reader, ct, boundary string) error {
 //	t, err := GetExtractor(ct)
 //	if err != nil {
 //		return err
@@ -77,7 +81,7 @@ const (
 //	return SubType{}, nil
 //}
 
-//var (
+// var (
 //	ALT = SubType{MULTIPART, "alternative", multiAlt}
 //	REL = SubType{MULTIPART, "related", multiRel}
 //
@@ -104,7 +108,7 @@ const (
 
 var ErrMissingContentType = errors.New("Missing Content-Type Header")
 
-//func NewPart(params Parameters, body io.Reader) (*Part, error) {
+// func NewPart(params Parameters, body io.Reader) (*Part, error) {
 //	p := &Part{
 //		Params: params,
 //	}
@@ -124,7 +128,7 @@ var ErrMissingContentType = errors.New("Missing Content-Type Header")
 //	return p, nil
 //}
 
-//func multiAlt(body io.Reader, boundary string) error {
+// func multiAlt(body io.Reader, boundary string) error {
 //	return nil
 //}
 //
