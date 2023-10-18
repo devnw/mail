@@ -10,21 +10,24 @@ import (
 )
 
 func Test_Multipart_Extract(t *testing.T) {
-	ncceml, err := os.OpenFile("./testdata/multipart/ncc.eml", os.O_RDONLY, 0644)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testeml, err := os.OpenFile("./testdata/multipart/test.eml", os.O_RDONLY, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	msg, err := mail.ReadMessage(ncceml)
+	msg, err := mail.ReadMessage(testeml)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	m, p, err := Extract(context.Background(), Attributes(msg.Header), msg.Body)
+	p, err := Parse(ctx, HtoA(msg.Header), msg.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	spew.Config.DisableMethods = true
 	spew.Dump(p)
-	spew.Dump(m)
 }

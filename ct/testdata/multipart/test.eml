@@ -1,0 +1,137 @@
+Delivered-To: benji.vesterby@gmail.com
+Received: by 2002:a17:906:840e:b0:9b9:f156:447c with SMTP id n14csp1969508ejx;
+        Mon, 9 Oct 2023 08:30:52 -0700 (PDT)
+X-Received: by 2002:a67:e941:0:b0:452:7601:e80b with SMTP id p1-20020a67e941000000b004527601e80bmr8887490vso.35.1696865451792;
+        Mon, 09 Oct 2023 08:30:51 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1696865451; cv=none;
+        d=google.com; s=arc-20160816;
+        b=iFzlMxA78QCjN7rDG5fwcvZUTJweCaJcDh6jxSSI+cJA4loSkAIovRGiBAaV2CbprA
+         cHJLKT/nm2v25JpincvDm7fB7ZTpwe0bAbYHVGhJGaKI1536fXJGHlfj2CNmrNQDssKV
+         op9JjtAWbqLBXBeDIRBWSlUflcjxJbUcw9Cu4dXjyeCiV5Ky1ZIUNvDHf26pGgcr8J6J
+         tIUpVp9TectilpGYzPGGM83Wl31Mr7uUbJhgylyQX5LfZceMZNTBteHwBFt2JABexLUx
+         LM13qbq+ASqXZNr0OrOj9d3jfiKObiV09hL15CdIzaYb9S2S33Xapul48kczEmXzM6FR
+         jbVA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=wezDyS4K2U9w1rgCpXzW96X4cFIBvye5tRz3Ps75gcg=;
+        fh=w3hWRSt9pa4+sDjqnEZZsf0jQh/5xQmBUC/NpwqjiGE=;
+        b=WgYQMCNMArtXwKC0u2Mk84aMEjLn4Azv3+1TqEyFw2bpADA2D7ZW7E6pHBxyQmdNcH
+         ubwpmwFtQPwcSncFt/aDuJ8OsfzlC94AU+OXGY5PQJpvRqNjS7eF/BtQ/Tp38xzWleR9
+         I9Z98/Q0kbMdPtN/5zno8GS+sQDz++R3/+e+q8k6+dehwCdAIRagt7EKrPDK1UArdcx/
+         tfV2n+5nCWIMZnBkGyvPBHsFuYkaA+YsvfeWtmu8lyIimcHVhd0xap057VxXD4gtn+VD
+         zyAjfLT/08IAnGm0zG0qXPj5aAfY9kYm9JEuXWibOuGrK7STj4ZyFA5nSUYDSUxF8XcE
+         z5Dg==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@devnw-com.20230601.gappssmtp.com header.s=20230601 header.b=WdUCp19b;
+       spf=pass (google.com: domain of benji@devnw.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=benji@devnw.com
+Return-Path: <benji@devnw.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id i26-20020a67c21a000000b0045081128775sor2851399vsj.15.2023.10.09.08.30.51
+        for <benji.vesterby@gmail.com>
+        (Google Transport Security);
+        Mon, 09 Oct 2023 08:30:51 -0700 (PDT)
+Received-SPF: pass (google.com: domain of benji@devnw.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@devnw-com.20230601.gappssmtp.com header.s=20230601 header.b=WdUCp19b;
+       spf=pass (google.com: domain of benji@devnw.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=benji@devnw.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=devnw-com.20230601.gappssmtp.com; s=20230601; t=1696865451; x=1697470251; dara=google.com;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=wezDyS4K2U9w1rgCpXzW96X4cFIBvye5tRz3Ps75gcg=;
+        b=WdUCp19bYBisZWTRYhibH1FjWuGPKrSNRzagJoxffd8lK1GziEfplYmY9qjCjn1O6w
+         XuJyJ9dtezYoyn3pAyBG8yQv7QDqVYyZUYIyqObHJtl3I4imkzlz/n/Mg308a4SCNGbR
+         GT1GgLoXIE0KgfsUjNxMoKRYDw6nm6HH9YaEgoU4hm0pUli5W8WJBF+QCFdwK8LjlLsr
+         VvZvKE/I6V2D4Evgr81wWdFXuXxmXLme2wxrobKCtr0AewDrgAnCyODqFammsOlomigk
+         J6HBolHF0JTrnQUHhZ+4DX/yiG7cxZE3oe9DtC5F74Gfw4b+pjwi3oReI0K91fIRP4/w
+         jZdw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1696865451; x=1697470251;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=wezDyS4K2U9w1rgCpXzW96X4cFIBvye5tRz3Ps75gcg=;
+        b=N4unm+aGg2oX8MEKFwXbwWUXZ1wi6MZt/PMAvOjFLP/MIVJ4g85uzjgu6NBqEw1tnD
+         OY8YAQFWRYjnkLatSb6nlU9+8vuSMmSKbcNAxpysFJOVMp7asNfSgybiwWiG0N2LeV2Y
+         b5/8rEZmTU1BUFW/2wivqQwZzrLZzp/qX04by0SIBzVGR9Ljz+nTW2CKCbDpniuCWL29
+         /AvlmpRUv+pMnVXN0PRK7SiZWbS8RQjKotdxWwxuutqZbujvbWcMDkO+E/LLnZlHXBK+
+         JSFkt3V1ujLnTQIdgYbXel9u1Su22Kd7ZQQDLXOZdDiGIp8mCHDzNQXL99tJrWpt1L2k
+         C5xQ==
+X-Gm-Message-State: AOJu0Yw+ZveV27eYtiUXKLeaZ4b6gnwFoHmtmtWG4PK0UWM3kICaToZx
+	IQbeK04b3eYrysURMiNANKFM9mN4rIH9BjODwimod0NvMERlaCAQ/kA=
+X-Google-Smtp-Source: AGHT+IFvyrj2c/vPe8fEPbu6M0U0LDUGhP0MxZutYxC9ZOVCaKdlGJ8TY3Hk6Yi8KfHU430UmaLdvydBodIUNK1kpNY=
+X-Received: by 2002:a67:bd13:0:b0:452:579d:7f3c with SMTP id
+ y19-20020a67bd13000000b00452579d7f3cmr11173949vsq.4.1696865449930; Mon, 09
+ Oct 2023 08:30:49 -0700 (PDT)
+MIME-Version: 1.0
+From: Benji Vesterby <benji@codepros.org>
+Date: Mon, 9 Oct 2023 11:30:39 -0400
+Message-ID: <CAFXv9zTbh0vq+h+95kv-=Q8-NwjPF=McN4XUYrQJawxfKfME8A@mail.gmail.com>
+Subject: test email
+To: "benji.vesterby@gmail.com" <benji.vesterby@gmail.com>
+Content-Type: multipart/alternative; boundary="0000000000006010b806074a466f"
+
+--0000000000006010b806074a466f
+Content-Type: text/plain; charset="UTF-8"
+
+test
+
+Benjamin Vesterby | Cybersecurity and Software Engineering Consultant
+CodePros | Secure Foundations, Infinite Possibilities
+(w) https://codepros.org/ (e) *benji@codepros.org* <benji@codepros.org> (m)
+208.818.9583 (p) (919) 205-4626
+(github) benjivesterby <https://github.com/benjivesterby> (github)
+codeprosorg <https://github.com/codeprosorg> (twitter) @codeprosorg
+<https://www.twitter.com/codeprosorg>
+
+Click here to schedule time on my calendar!
+<https://calendly.com/benjivesterby>
+
+
+
+CONFIDENTIALITY NOTE
+This electronic transmission, including all attachments, is directed in
+confidence solely to the person(s) to which it is addressed, or an
+authorized recipient, and may not otherwise be distributed, copied or
+disclosed. The contents of the transmission may also be subject to
+intellectual property rights and all such rights are expressly claimed and
+are not waived. If you have received this transmission in error, please
+notify the sender immediately by return electronic transmission and then
+immediately delete this transmission, including all attachments, without
+copying, distributing or disclosing same
+
+--0000000000006010b806074a466f
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">test<br clear=3D"all"><div><div dir=3D"ltr" class=3D"gmail=
+_signature" data-smartmail=3D"gmail_signature"><div dir=3D"ltr"><div><font =
+color=3D"#888888"><br>Benjamin Vesterby | Cybersecurity and Software Engine=
+ering Consultant</font></div><div><font color=3D"#888888">CodePros | Secure=
+ Foundations, Infinite Possibilities<br></font><div><font color=3D"#888888"=
+>(w)=C2=A0</font><font color=3D"#888888"><a href=3D"https://codepros.org/" =
+target=3D"_blank">https://codepros.org/</a>=C2=A0(e)=C2=A0<a href=3D"mailto=
+:benji@codepros.org" target=3D"_blank"><u>benji@codepros.org</u></a></font>=
+<font color=3D"#888888">=C2=A0(m)=C2=A0</font><a href=3D"tel:208.818.9583" =
+target=3D"_blank">208.818.9583</a><font color=3D"#888888">=C2=A0(p)=C2=A0</=
+font><a href=3D"tel:(919)+205-4626" target=3D"_blank">(919) 205-4626</a><br=
+></div><div>(github)=C2=A0<a href=3D"https://github.com/benjivesterby" targ=
+et=3D"_blank">benjivesterby</a>=C2=A0(github)=C2=A0<a href=3D"https://githu=
+b.com/codeprosorg" target=3D"_blank">codeprosorg</a>=C2=A0(twitter)=C2=A0<a=
+ href=3D"https://www.twitter.com/codeprosorg" target=3D"_blank">@codeprosor=
+g</a>=C2=A0</div><div><br></div><div><a href=3D"https://calendly.com/benjiv=
+esterby" target=3D"_blank">Click here to schedule time on my calendar!</a><=
+/div><div><br></div><div><img src=3D"https://ci3.googleusercontent.com/mail=
+-sig/AIorK4wJOpvmLhjLzLgxahkSf-9GQI9YLWRelAuFTKOKMLTp7lnZEA3omGsh6J9IzxKUJn=
+b_xlnqCRM"><br></div><div><br></div><div><font color=3D"#888888">CONFIDENTI=
+ALITY NOTE=C2=A0</font><br><font color=3D"#888888">This electronic transmis=
+sion, including all attachments, is directed in confidence solely to the pe=
+rson(s) to which it is addressed, or an authorized recipient, and may not o=
+therwise be distributed, copied or disclosed. The contents of the transmiss=
+ion may also be subject to intellectual property rights and all such rights=
+ are expressly claimed and are not waived. If you have received this transm=
+ission in error, please notify the sender immediately by return electronic =
+transmission and then immediately delete this transmission, including all a=
+ttachments, without copying, distributing or disclosing same</font></div></=
+div></div></div></div></div>
+
+--0000000000006010b806074a466f--

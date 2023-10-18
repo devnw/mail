@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"mime/multipart"
 	"net/textproto"
 	"strings"
 )
@@ -23,6 +24,11 @@ type Part struct {
 	body io.Reader
 
 	children []*Part
+
+	// TODO: add a metadata section for iocs to be added to individual parts
+
+	// TODO: Add hash, and setup so that it's calculated and cached on each
+	// readthrough using a TEE
 }
 
 func (p *Part) Type() string {
@@ -59,36 +65,40 @@ func Parse(
 	attrs Attributes,
 	body io.Reader,
 ) (*Part, error) {
-	ct, params, err := mime.ParseMediaType(attrs.Get(TYPE.String()))
+	mt, params, err := mime.ParseMediaType(attrs.Get(TYPE.String()))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if !strings.HasPrefix(ct, MULTIPART.String()) {
-		fmt.Println(ct)
-		fmt.Println(attrs.Get(TRANSFERENCODING.String()))
-		return nil, nil, fmt.Errorf("invalid media type: %s", ct)
+	if !strings.HasPrefix(mt, MULTIPART.String()) {
+		if params[BOUNDARY] != "" {
+			body, err = multipart.NewReader(body, params[BOUNDARY]).NextPart()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// TODO: Add hash as secondary while reading the io.Reader
+		// TODO: As the initial read is going through this should scan for links/emails
+		// TODO: As the initial read is going through this should parse the HTML and
+		// pull all links, emails, contact information, IP addresses, etc... for
+		// threat intel feeds
+		return &Part{
+			mediaType: mt,
+			body:      body,
+		}, nil
 	}
 
-	Extract(ctx, params, body)
-}
-
-// Parse takes the full Content-Type header/param value and extracts
-// the mime media type information and updates this Part with the parsed
-// information for analysis.
-func (p *Part) Parse(ctx context.Context) (err error) {
-	parts, params, err := Extract(ctx, p.headers, p.body)
+	children, err := Extract(ctx, params, body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	a := Attributes{}
-	for k, v := range params {
-		a[k] = []string{v}
-	}
-
-	p.params = a
-	p.children = parts
-
-	return nil
+	return &Part{
+		mediaType: mt,
+		headers:   attrs,
+		params:    ToAttributes(params),
+		body:      body,
+		children:  children,
+	}, err
 }

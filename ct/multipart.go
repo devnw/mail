@@ -12,7 +12,13 @@ type CONTENT string
 func (c CONTENT) String() string { return string(c) }
 
 const (
-	TYPE             CONTENT = "Content-Type"
+	TYPE CONTENT = "Content-Type"
+
+	// If a MIME part is 7bit, the Content-Transfer-Encoding header is
+	// optional. MIME parts with any other transfer encoding must contain
+	// a Content-Transfer-Encoding header. If the MIME part is a multipart
+	// content type, the part should not have an encoding of base64 or
+	// quoted-printable.
 	TRANSFERENCODING CONTENT = "Content-Transfer-Encoding"
 	DISPOSITION      CONTENT = "Content-Disposition"
 	BOUNDARY                 = "boundary"
@@ -26,48 +32,61 @@ func (m Multipart) Type() string { return "multipart" }
 
 func Extract(
 	ctx context.Context,
-	attrs Attributes,
+	params map[string]string,
 	body io.Reader,
-) (Multipart, map[string]string, error) {
+) (Multipart, error) {
 	m := Multipart{}
 
 	boundary := params[BOUNDARY]
 	if boundary == "" {
-		return nil, nil, ErrMissingBoundary
+		return nil, ErrMissingBoundary
 	}
 
 	mr := multipart.NewReader(body, boundary)
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, nil, ctx.Err()
+			return nil, ctx.Err()
 
 		default:
 			pt, err := mr.NextPart()
 			if err != nil {
 				if err == io.EOF {
-					return m, params, nil
+					return m, nil
 				}
 
-				return nil, nil, err
+				return nil, err
 			}
 
-			p := &Part{
-				mediaType: ct,
-				body:      pt,
-				headers:   Attributes(pt.Header),
-			}
-
-			err = p.Parse(ctx)
+			p, err := Parse(ctx, HtoA(pt.Header), pt)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			m = append(m, p)
 		}
 	}
 
-	return m, params, nil
+	return m, nil
+}
+
+func HtoA[T ~map[string][]string](h T) Attributes {
+	attr := Attributes{}
+	for k, v := range h {
+		attr[k] = v
+	}
+
+	return attr
+}
+
+func AtoP(a Attributes) map[string]string {
+	out := map[string]string{}
+
+	for k, _ := range a {
+		out[k] = a.Get(k)
+	}
+
+	return out
 }
 
 func ToAttributes[T map[string]string](p T) Attributes {
