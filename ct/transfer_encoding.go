@@ -3,7 +3,6 @@ package ct
 import "io"
 
 func Decode(body io.Reader, encoding string) ([]byte, error) {
-
 	return nil, nil
 }
 

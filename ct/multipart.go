@@ -3,6 +3,7 @@ package ct
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 )
@@ -50,11 +51,12 @@ func Extract(
 
 		default:
 			pt, err := mr.NextPart()
-			if err != nil {
-				if err == io.EOF {
-					return m, nil
-				}
+			fmt.Println(err)
+			if err == io.EOF {
+				return m, nil
+			}
 
+			if err != nil {
 				return nil, err
 			}
 
