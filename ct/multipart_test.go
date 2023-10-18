@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-
 	spew.Config.DisableMethods = true
 }
 
@@ -28,24 +28,16 @@ func Test_Multipart_Extract(t *testing.T) {
 				return nil
 			}
 
-			if err != nil {
-				return err
-			}
+			assert.NoError(t, err)
 
 			testeml, err := os.OpenFile(path, os.O_RDONLY, 0644)
-			if err != nil {
-				return err
-			}
+			assert.NoError(t, err)
 
 			msg, err := mail.ReadMessage(testeml)
-			if err != nil {
-				return err
-			}
+			assert.NoError(t, err)
 
 			p, err := Parse(ctx, HtoA(msg.Header), io.NopCloser(msg.Body))
-			if err != nil {
-				return err
-			}
+			assert.NoError(t, err)
 
 			defer p.Close()
 
