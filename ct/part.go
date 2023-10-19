@@ -62,8 +62,16 @@ func (p *Part) Read(b []byte) (int, error) {
 }
 
 func (p *Part) Close() error {
+	if p == nil {
+		return nil
+	}
+
 	for _, c := range p.children {
 		_ = c.Close()
+	}
+
+	if p.body == nil {
+		return nil
 	}
 
 	return p.body.Close()
@@ -74,13 +82,12 @@ func Parse(
 	attrs Attributes,
 	body io.ReadCloser,
 ) (*Part, error) {
-	mt, params, err := mime.ParseMediaType(
-		normalizeMediaType(attrs.Get(TYPE.String())),
-	)
+	normMT := normalizeMediaType(attrs.Get(TYPE.String()))
+	mt, params, err := mime.ParseMediaType(normMT)
 	if err != nil {
 		return nil, errors.Join(err, fmt.Errorf(
 			"failed to parse media type %s",
-			attrs.Get(TYPE.String()),
+			normMT,
 		))
 	}
 
@@ -108,13 +115,13 @@ func Parse(
 			body:      body,
 		}
 
-		fmt.Printf(
-			"multipart: %v; type: %s; encoding: %s; boundary: %s;\n",
-			p.MultiPart(),
-			p.Type(),
-			p.Encoding(),
-			p.Boundary(),
-		)
+		// fmt.Printf(
+		//	"multipart: %v; type: %s; encoding: %s; boundary: %s;\n",
+		//	p.MultiPart(),
+		//	p.Type(),
+		//	p.Encoding(),
+		//	p.Boundary(),
+		//)
 
 		return p, nil
 	}
@@ -132,18 +139,20 @@ func Parse(
 		children:  children,
 	}
 
-	fmt.Printf(
-		"multipart: %v; type: %s; encoding: %s; boundary: %s;\n",
-		p.MultiPart(),
-		p.Type(),
-		p.Encoding(),
-		p.Boundary(),
-	)
+	// fmt.Printf(
+	//	"multipart: %v; type: %s; encoding: %s; boundary: %s;\n",
+	//	p.MultiPart(),
+	//	p.Type(),
+	//	p.Encoding(),
+	//	p.Boundary(),
+	//)
 
 	return p, err
 }
 
 func normalizeMediaType(mt string) string {
+	mt = strings.ReplaceAll(mt, `charset="charset="`, `charset="`)
+
 	// Add a space after each ; where one doesn't exist
 	for i, r := range mt {
 		if r == ';' && i+1 < len(mt) && mt[i+1] != ' ' {
@@ -151,9 +160,9 @@ func normalizeMediaType(mt string) string {
 		}
 	}
 
-	out := strings.ToLower(strings.TrimSpace(mt))
+	mt = strings.ReplaceAll(mt, ` iso-8859-1`, `charset=iso-8859-1`)
 
-	fmt.Printf("normalized media type: %s\n", out)
+	out := strings.ToLower(strings.TrimSpace(mt))
 
 	return out
 }
