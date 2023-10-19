@@ -35,7 +35,7 @@ func Extract(
 	params map[string]string,
 	body io.Reader,
 ) (Multipart, error) {
-	m := Multipart{}
+	var m Multipart
 
 	boundary := params[BOUNDARY]
 	if boundary == "" {
