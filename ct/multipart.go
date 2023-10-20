@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"mime/multipart"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type CONTENT string
@@ -37,6 +39,7 @@ func Extract(
 ) (Multipart, error) {
 	var m Multipart
 
+	spew.Dump(params)
 	boundary := params[BOUNDARY]
 	if boundary == "" {
 		return nil, ErrMissingBoundary
@@ -47,7 +50,6 @@ func Extract(
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-
 		default:
 			pt, err := mr.NextPart()
 			if errors.Is(err, io.EOF) {

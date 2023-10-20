@@ -179,14 +179,17 @@ func Parse(
 
 		return p, nil
 	}
+
+	buff := new(bytes.Buffer)
+
 	p := &Part{
 		mediaType: mt,
 		headers:   attrs,
 		params:    ToAttributes(params),
-		body:      body,
+		body:      io.NopCloser(buff),
 	}
 
-	p.children, err = Extract(ctx, params, body)
+	p.children, err = Extract(ctx, params, io.TeeReader(body, buff))
 	if err != nil {
 		return nil, err
 	}
