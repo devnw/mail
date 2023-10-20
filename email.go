@@ -3,8 +3,9 @@ package mail
 import (
 	"context"
 	"io"
-	"mime/multipart"
 	"net/mail"
+
+	"go.devnw.com/mail/ct"
 )
 
 type Email struct {
@@ -15,20 +16,20 @@ type Email struct {
 	Text string
 
 	Attachments []Attachment
-	Embeds      []Embeds
+	Embedded    []Embedded
 }
 
-// Attachment with filename, content type and data (as a io.Reader)
+// Attachment with filename, content type and data (as a io.Reader).
 type Attachment struct {
-	*multipart.Part
+	*ct.Part
 	FileName    string
 	ContentType string
 	Data        io.Reader
 }
 
-// Embedded with content id, content type and data (as a io.Reader)
+// Embedded with content id, content type and data (as a io.Reader).
 type Embedded struct {
-	*multipart.Part
+	*ct.Part
 	CID         string
 	ContentType string
 	Data        io.Reader

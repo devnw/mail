@@ -56,7 +56,18 @@ type Header struct {
 }
 
 func (h *Header) Decode(ctx context.Context, header mail.Header) error {
-	d := new(mime.WordDecoder)
+	var decoders = map[string]func(
+		header mail.Header,
+		key string,
+		out reflect.Value,
+	) error{
+		"mime/word":      word,
+		"mail/address":   address,
+		"mail/addresses": addressList,
+		"mail/date":      date,
+		"mime/media":     media,
+	}
+
 	h.Additional = make(map[string][]string)
 
 	val := reflect.ValueOf(h).Elem()
@@ -98,110 +109,14 @@ func (h *Header) Decode(ctx context.Context, header mail.Header) error {
 				dec = fields[1]
 			}
 
-			switch dec {
-			case "mime/word":
-				s, err := d.Decode(header.Get(key))
-				if err != nil {
-					out.SetString(header.Get(key))
-					continue
-				}
+			decoder, ok := decoders[dec]
+			if !ok {
+				decoder = defaultT
+			}
 
-				out.SetString(s)
-			case "mail/address":
-				s := header.Get(key)
-				if strings.Trim(s, " \n") == "" {
-					continue
-				}
-
-				a, err := mail.ParseAddress(s)
-				if err != nil {
-					return err
-				}
-
-				out.Set(reflect.ValueOf(a))
-			case "mail/addresses":
-				s, err := header.AddressList(key)
-				if err != nil {
-					if err == mail.ErrHeaderNotPresent {
-						continue
-					}
-
-					return err
-				}
-
-				out.Set(reflect.ValueOf(s))
-			case "mail/date":
-				v := header.Get(key)
-				if v == "" {
-					continue
-				}
-
-				t, err := mail.ParseDate(v)
-				if err != nil {
-					return err
-				}
-
-				out.Set(reflect.ValueOf(t))
-			case "mime/media":
-				v := header.Get(key)
-				if v == "" {
-					continue
-				}
-
-				media, params, err := mime.ParseMediaType(v)
-				if err != nil {
-					return err
-				}
-
-				out.Set(reflect.ValueOf(&Media{
-					Type:   media,
-					Params: params,
-				}))
-			default:
-				values, exists := header[key]
-				if !exists || len(values) == 0 {
-					continue
-				}
-
-				//nolint:exhaustive // TODO: add support for more types if necessary
-				switch out.Kind() {
-				case reflect.Slice:
-					out.Set(reflect.ValueOf(values))
-				case reflect.String:
-					out.SetString(strings.Join(values, ", "))
-				case reflect.Float32, reflect.Float64:
-					v, err := strconv.ParseFloat(values[0], 64)
-					if err != nil {
-						return err
-					}
-
-					out.SetFloat(v)
-				case reflect.Int, reflect.Int8, reflect.Int16,
-					reflect.Int32, reflect.Int64:
-					v, err := strconv.ParseInt(values[0], 10, 64)
-					if err != nil {
-						return err
-					}
-
-					out.SetInt(v)
-				case reflect.Uint, reflect.Uint8, reflect.Uint16,
-					reflect.Uint32, reflect.Uint64:
-					v, err := strconv.ParseUint(values[0], 10, 64)
-					if err != nil {
-						return err
-					}
-
-					out.SetUint(v)
-				case reflect.Bool:
-					v, err := strconv.ParseBool(values[0])
-					if err != nil {
-						return err
-					}
-
-					out.SetBool(v)
-				default:
-					return errors.New("unsupported type")
-				}
+			err := decoder(header, key, out)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -303,6 +218,9 @@ func (t *Transport) Decode(ctx context.Context, s string) (err error) {
 	by, err := extractBy(s)
 	if err == nil {
 		t.By, err = parseEntity(by)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -424,6 +342,187 @@ func extractBy(input string) (string, error) {
 	return "", fmt.Errorf("no match found")
 }
 
-func parseEntity(entity string) (Entity, error) {
+func parseEntity(_ string) (Entity, error) {
 	return Entity{}, nil
+}
+
+var ErrUnsupportedType = errors.New("unsupported type")
+
+func word(
+	header mail.Header,
+	key string,
+	out reflect.Value,
+) error {
+	var d = new(mime.WordDecoder)
+
+	// Word decoding is only for strings
+	if out.Kind() != reflect.String {
+		// TODO: log
+		return ErrUnsupportedType
+	}
+
+	s, err := d.Decode(header.Get(key))
+	if err != nil {
+		s = header.Get(key)
+	}
+
+	out.SetString(s)
+	return nil
+}
+
+var ErrEmptyAddress = errors.New("empty address")
+var ErrInvalidAddress = errors.New("invalid address")
+
+func address(
+	header mail.Header,
+	key string,
+	out reflect.Value,
+) error {
+	// Address decoding is only for mail.Address or strings
+	if out.Kind() != reflect.TypeOf(new(mail.Address)).Kind() ||
+		out.Kind() != reflect.String {
+		return ErrUnsupportedType
+	}
+
+	s := header.Get(key)
+	if strings.Trim(s, " \n") == "" {
+		return ErrEmptyAddress
+	}
+
+	a, err := mail.ParseAddress(s)
+	if err != nil {
+		return errors.Join(err, ErrInvalidAddress)
+	}
+
+	if out.Kind() == reflect.String {
+		out.SetString(a.String())
+		return nil
+	}
+
+	out.Set(reflect.ValueOf(a))
+	return nil
+}
+
+func addressList(
+	header mail.Header,
+	key string,
+	out reflect.Value,
+) error {
+	if out.Kind() != reflect.Slice {
+		return ErrUnsupportedType
+	}
+
+	if out.Type().Elem().Kind() !=
+		reflect.TypeOf(new(mail.Address)).Kind() ||
+		out.Type().Elem().Kind() != reflect.String {
+		return ErrUnsupportedType
+	}
+
+	s, err := header.AddressList(key)
+	if err != nil {
+		if err == mail.ErrHeaderNotPresent {
+			return nil
+		}
+
+		return err
+	}
+
+	out.Set(reflect.ValueOf(s))
+	return nil
+}
+
+func date(
+	header mail.Header,
+	key string,
+	out reflect.Value,
+) error {
+	v := header.Get(key)
+	if v == "" {
+		return nil
+	}
+
+	t, err := mail.ParseDate(v)
+	if err != nil {
+		return err
+	}
+
+	out.Set(reflect.ValueOf(t))
+
+	return nil
+}
+
+func media(
+	header mail.Header,
+	key string,
+	out reflect.Value,
+) error {
+	v := header.Get(key)
+	if v == "" {
+		return nil
+	}
+
+	media, params, err := mime.ParseMediaType(v)
+	if err != nil {
+		return err
+	}
+
+	out.Set(reflect.ValueOf(&Media{
+		Type:   media,
+		Params: params,
+	}))
+
+	return nil
+}
+
+func defaultT(
+	header mail.Header,
+	key string,
+	out reflect.Value,
+) error {
+	values, exists := header[key]
+	if !exists || len(values) == 0 {
+		return nil
+	}
+
+	//nolint:exhaustive // TODO: add support for more types if necessary
+	switch out.Kind() {
+	case reflect.Slice:
+		out.Set(reflect.ValueOf(values))
+	case reflect.String:
+		out.SetString(strings.Join(values, ", "))
+	case reflect.Float32, reflect.Float64:
+		v, err := strconv.ParseFloat(values[0], 64)
+		if err != nil {
+			return err
+		}
+
+		out.SetFloat(v)
+	case reflect.Int, reflect.Int8, reflect.Int16,
+		reflect.Int32, reflect.Int64:
+		v, err := strconv.ParseInt(values[0], 10, 64)
+		if err != nil {
+			return err
+		}
+
+		out.SetInt(v)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64:
+		v, err := strconv.ParseUint(values[0], 10, 64)
+		if err != nil {
+			return err
+		}
+
+		out.SetUint(v)
+	case reflect.Bool:
+		v, err := strconv.ParseBool(values[0])
+		if err != nil {
+			return err
+		}
+
+		out.SetBool(v)
+	default:
+		return errors.New("unsupported type")
+	}
+
+	return nil
 }
