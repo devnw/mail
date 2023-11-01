@@ -39,7 +39,7 @@ uloop:
 			continue
 		}
 
-		parsed, err = stripSafeLN(parsed)
+		parsed, err = RMSafeLink(parsed)
 		if err != nil {
 			slog.Warn(
 				"Error stripping safe link",
@@ -72,7 +72,10 @@ var knownSafeLinkSuffix = []string{
 	"safelinks.protection.outlook.com",
 }
 
-func stripSafeLN(ln *url.URL) (*url.URL, error) {
+// RMSafeLink removes the safe link wrapper from a URL that was added by
+// known safe link providers registered by the knownSafeLinkSuffix global
+// variable for host suffixes.
+func RMSafeLink(ln *url.URL) (*url.URL, error) {
 	if ln == nil {
 		return nil, ErrEmpty
 	}
