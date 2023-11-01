@@ -18,6 +18,7 @@ func urls(data string) []*url.URL {
 
 	for _, u := range allU {
 		u = strings.TrimSuffix(u, ">")
+		u = strings.TrimSuffix(u, ")")
 		u = strings.TrimSuffix(u, "\"")
 
 		if dedup[u] {
