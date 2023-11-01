@@ -74,14 +74,14 @@ func (e *Email) Hashes(ctx context.Context) ([][]byte, error) {
 //
 // If the links are safe links, they will be stripped of the
 // safe link wrapper and the original link will be returned.
-func (e *Email) Links(ignoredHosts ...string) ([]*url.URL, error) {
+func (e *Email) Links() ([]*url.URL, error) {
 	// Evaluate the text body for links
-	out := urls(e.Text, ignoredHosts...)
+	out := urls(e.Text)
 
 	// TODO: strip <a href""> tags from HTML
 
 	// Evaluate the html body non href links for urls
-	out = append(out, urls(e.HTML, ignoredHosts...)...)
+	out = append(out, urls(e.HTML)...)
 
 	// Evaluate the attachments for links
 

@@ -10,12 +10,12 @@ import (
 
 var urlR = regexp.MustCompile(`https?://[^\s]+|ftp://[^\s]+`)
 
-func urls(data string, ignores ...string) []*url.URL {
+func urls(data string) []*url.URL {
 	out := []*url.URL{}
 
 	var dedup = make(map[string]bool)
 	allU := urlR.FindAllString(data, -1)
-uloop:
+
 	for _, u := range allU {
 		u = strings.TrimSuffix(u, ">")
 		u = strings.TrimSuffix(u, "\"")
@@ -51,12 +51,6 @@ uloop:
 		// check for duplicate
 		if dedup[parsed.String()] {
 			continue
-		}
-
-		for _, ignore := range ignores {
-			if strings.HasSuffix(parsed.Host, ignore) {
-				continue uloop
-			}
 		}
 
 		out = append(out, parsed)
