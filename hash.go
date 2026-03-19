@@ -59,8 +59,8 @@ func hash(ctx context.Context, data <-chan []byte) <-chan []byte {
 					return
 				}
 
-				sha256 := sha256.New()
-				_, err := io.Copy(sha256, bytes.NewReader(d))
+				h := sha256.New()
+				_, err := io.Copy(h, bytes.NewReader(d))
 				if err != nil {
 					slog.WarnContext(
 						ctx,
@@ -70,7 +70,7 @@ func hash(ctx context.Context, data <-chan []byte) <-chan []byte {
 					continue
 				}
 
-				out <- sha256.Sum(nil)
+				out <- h.Sum(nil)
 			}
 		}
 	}()

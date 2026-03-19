@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 	"net/url"
+	"sync"
 
 	"github.com/mnako/letters"
-	"go.atomizer.io/stream"
 )
 
 func Load(r io.ReadCloser) (*Email, error) {
@@ -40,32 +40,65 @@ func (e *Email) Metrics(ctx context.Context) (*Metrics, error) {
 // hashes of all attachments and inline files.
 func (e *Email) Hashes(ctx context.Context) ([][]byte, error) {
 	seen := make(map[string]struct{})
-	hashes := stream.Intercept(ctx, stream.FanIn(
-		ctx,
+	merged := fanIn(ctx,
 		hash(ctx, attachs(ctx, e.AttachedFiles)),
 		hash(ctx, embeds(ctx, e.InlineFiles)),
-	), func(ctx context.Context, data []byte) ([]byte, bool) {
-		_, ok := seen[string(data)]
-		if ok {
-			return nil, false // filter dups
-		}
-
-		return data, true
-	})
+	)
 
 	var out [][]byte
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case h, ok := <-hashes:
+		case h, ok := <-merged:
 			if !ok {
 				return out, nil
 			}
 
+			key := string(h)
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			seen[key] = struct{}{}
+
 			out = append(out, h)
 		}
 	}
+}
+
+// fanIn merges multiple channels into a single channel.
+func fanIn[T any](ctx context.Context, channels ...<-chan T) <-chan T {
+	out := make(chan T)
+	var wg sync.WaitGroup
+
+	for _, ch := range channels {
+		wg.Add(1)
+		go func(c <-chan T) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case v, ok := <-c:
+					if !ok {
+						return
+					}
+					select {
+					case <-ctx.Done():
+						return
+					case out <- v:
+					}
+				}
+			}
+		}(ch)
+	}
+
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+
+	return out
 }
 
 // Links returns a slice of all links in the email from both the

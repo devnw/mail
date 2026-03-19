@@ -31,8 +31,8 @@ func urls(data string) []*url.URL {
 		if err != nil {
 			slog.Warn(
 				"Error parsing URL",
-				"error", err.Error(),
-				"url", u,
+				slog.String("error", err.Error()),
+				slog.String("url", u),
 			)
 		}
 
@@ -42,10 +42,11 @@ func urls(data string) []*url.URL {
 
 		parsed, err = RMSafeLink(parsed)
 		if err != nil {
+			//nolint:gosec // G706: u is extracted from email body via regex, not injected into log format string
 			slog.Warn(
 				"Error stripping safe link",
-				"error", err.Error(),
-				"url", u,
+				slog.String("error", err.Error()),
+				slog.String("url", u),
 			)
 		}
 
@@ -62,7 +63,6 @@ func urls(data string) []*url.URL {
 
 var ErrEmpty = errors.New("empty safe link")
 
-//nolint:gochecknoglobals // this is a list of known safe link suffixes
 var knownSafeLinkSuffix = []string{
 	"safelinks.protection.outlook.com",
 }
