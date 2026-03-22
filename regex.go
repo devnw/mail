@@ -42,7 +42,6 @@ func urls(data string) []*url.URL {
 
 		parsed, err = RMSafeLink(parsed)
 		if err != nil {
-			//nolint:gosec // G706: u is extracted from email body via regex, not injected into log format string
 			slog.Warn(
 				"Error stripping safe link",
 				slog.String("error", err.Error()),
